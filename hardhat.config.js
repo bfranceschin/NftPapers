@@ -1,7 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 
-const fs = require("fs")
-const privateKey = fs.readFileSync(".secret").toString()
+// const fs = require("fs")
+// const privateKey = fs.readFileSync(".secret").toString()
 
 // TODO: testnet chain config
 
