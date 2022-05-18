@@ -25,12 +25,12 @@ describe("Testing the NFT contract", function () {
     token_0 = await contract.createToken(token0Uri, []);
   });
 
-  it.skip("Test name and tokenUri", async function () {
+  it("Test name and tokenUri", async function () {
     expect(await contract.name()).to.equal("SciGraph");
     expect(await contract.tokenURI(0)).to.equal(token0Uri);
   });
 
-  it.skip("Test donate method", async function () {
+  it("Test donate method", async function () {
     // Parse the etherString representation of ether 
     // into a BigNumber instance of the amount of wei.
     const donationAmount = ethers.utils.parseEther("1");
@@ -39,7 +39,7 @@ describe("Testing the NFT contract", function () {
     // expect(await contract.tokenDonationBalance(0)).to.equal(donationAmount/100);
   });
 
-  it.skip("Test create/get references", async function () {
+  it("Test create/get references", async function () {
     let refs0 = await contract.getReferences(0);
     expect(refs0.length == 0);
     // 
@@ -64,7 +64,7 @@ describe("Testing the NFT contract", function () {
     await expect (contract.createToken(token0Uri, ref_3)).to.be.revertedWith("_createReferences: Invalid tokenId in Reference entries");
   });
 
-  it.skip("Test add references", async function (){
+  it("Test add references", async function (){
     // _tokenIds[1]
     await contract.createToken(token0Uri, []);
     // _tokenIds[2]
