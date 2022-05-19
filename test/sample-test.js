@@ -25,21 +25,35 @@ describe("Testing the NFT contract", function () {
     token_0 = await contract.createToken(token0Uri, []);
   });
 
-  it("Test name and tokenUri", async function () {
+  it.skip("Test name and tokenUri", async function () {
     expect(await contract.name()).to.equal("SciGraph");
     expect(await contract.tokenURI(0)).to.equal(token0Uri);
   });
 
-  it("Test donate method", async function () {
+  it.skip("Test donate method", async function () {
     // Parse the etherString representation of ether 
     // into a BigNumber instance of the amount of wei.
     const donationAmount = ethers.utils.parseEther("1");
     expect(await contract.tokenDonationBalance(0)).to.equal(0);
+    expect(await contract.getTreasuryBalance()).to.equal(0);
+    // 
     await contract.connect(alice).donate(0, {value: donationAmount});
-    // expect(await contract.tokenDonationBalance(0)).to.equal(donationAmount/100);
+    let net_donation = donationAmount.sub(donationAmount.div(100));
+    let balance = await contract.tokenDonationBalance(0);
+    expect(balance.eq(net_donation));
+    let treasury_bal = await contract.getTreasuryBalance();
+    expect(treasury_bal.eq(donationAmount.sub(net_donation)));
+    // testing donasions < 100
+    const smallDonation = 90;
+    await contract.connect(alice).donate(0, {value: smallDonation});
+    balance_dash = await contract.tokenDonationBalance(0);
+    // balance_dash should be balance + smallDonation
+    expect(balance_dash.eq(balance.add(smallDonation)));
+    // treasury_bal should be the same as above
+    expect(treasury_bal.eq(donationAmount.sub(net_donation)));
   });
 
-  it("Test create/get references", async function () {
+  it.skip("Test create/get references", async function () {
     let refs0 = await contract.getReferences(0);
     expect(refs0.length == 0);
     // 
@@ -64,7 +78,7 @@ describe("Testing the NFT contract", function () {
     await expect (contract.createToken(token0Uri, ref_3)).to.be.revertedWith("_createReferences: Invalid tokenId in Reference entries");
   });
 
-  it("Test add references", async function (){
+  it.skip("Test add references", async function (){
     // _tokenIds[1]
     await contract.createToken(token0Uri, []);
     // _tokenIds[2]
@@ -102,7 +116,8 @@ describe("Testing the NFT contract", function () {
     const donationAmount = ethers.utils.parseEther("1");
     await contract.connect(alice).donate(0, {value: donationAmount});
     await contract.claimDonation(0);
-    expect (await owner.getBalance() == owner_bal + donationAmount);
+    let owner_bal_2 = await owner.getBalance();
+    expect ( owner_bal_2.eq( owner_bal.add( donationAmount)));
     await expect(contract.claimDonation(0)).to.be.revertedWith( "claimDonation: There is no balance to be claimed");
     // _tokenIds[1]
     await contract.createToken(token0Uri, []);
@@ -112,10 +127,16 @@ describe("Testing the NFT contract", function () {
 
     await contract.connect(alice).donate(0, {value: donationAmount});
     owner_bal = await owner.getBalance();
-    await contract.claimDonation(0);
-    expect(await owner.getBalance() == owner_bal + 666666666666666600);
-    expect(await contract.tokenDonationBalance(1) == 166666666666666660);
-    expect(await contract.tokenDonationBalance(2) == 166666666666666660);
+    bob_bal = await bob.getBalance();
+    await contract.connect(bob).claimDonation(0);
+    owner_bal_2 = await owner.getBalance();
+    expect ( owner_bal_2.eq( owner_bal.add( ethers.BigNumber.from("653400000000000000")) ));
+    let token1_bal = await contract.tokenDonationBalance(1);
+    let token2_bal = await contract.tokenDonationBalance(2);
+    expect ( token1_bal.eq( ethers.BigNumber.from("163350000000000000")) );
+    expect ( token2_bal.eq( ethers.BigNumber.from("163350000000000000") ) );
+    let bob_bal_2 = await bob.getBalance();
+    expect ( bob_bal_2.eq( bob_bal.add(ethers.BigNumber.from("9900000000000000") ) ) );
   });
 
 });
