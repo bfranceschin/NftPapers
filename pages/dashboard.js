@@ -5,7 +5,7 @@ export default function DashboardComponent() {
     <div className={styles.container}>
       <h1>Dashboard</h1>
       <br></br>
-      <p> Should list the user nfts.</p>
+      <p> Should list the user nfts and let the user claim donations.</p>
     </div>
   )
 }

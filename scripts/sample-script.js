@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
+const fs = require('fs');
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -14,12 +15,28 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  const contractFactory = await hre.ethers.getContractFactory("NFT");
+  const contract = await contractFactory.deploy();
 
-  await greeter.deployed();
+  await contract.deployed();
 
-  console.log("Greeter deployed to:", greeter.address);
+  console.log("Contract deployed to:", contract.address);
+
+  fs.writeFileSync('./config.js', `
+  export const contractAddress = "${contract.address}"
+  `)
+
+  // const baseIpfs = "ipfs://bafybeifz4j5ayidyb4xcu4ant6cetsxcccl6jcwciwrq7clkhvb3l3h7nm" // invisible friends cid
+  // const count = 15
+  // const donationAmount = ethers.utils.parseEther("1");
+  // for (let i = 0; i < count; i++) {
+  //   let ref = []
+  //   if (i>0) {
+  //     ref = [i-1]
+  //   }
+  //   await contract.createToken(baseIpfs + "/" + (100 + i), ref);
+  //   await contract.donate(i, {value: donationAmount})
+  // }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
