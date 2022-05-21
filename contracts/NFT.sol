@@ -18,7 +18,13 @@ contract NFT is ERC721URIStorage, ReentrancyGuard, Ownable {
   
   mapping(uint256 => uint256[]) private _references;
 
+  uint private _treasuryBalance;
+
   event ReferencesUpdated(uint256 tokenId);
+
+  event BalanceUpdated(uint256 tokenId, uint256 value);
+
+  event DonationClaimed(uint256 tokenId, uint256 totalFunds);
   
   constructor() ERC721("SciGraph", "SCGP") {}
 
@@ -34,12 +40,14 @@ contract NFT is ERC721URIStorage, ReentrancyGuard, Ownable {
 
   // receives a donation and tokenId
   // updates _donationBalance[tokenId]
-  // TODO : take a cut for the treasury
+  // takes a cut for the treasury
   // 
   function donate (uint256 tokenId) public payable nonReentrant {
     require(tokenId < _tokenIds.current(), "Token does not exist.");
-    // uint donation_liq = msg.value/100 ;
-    _donationBalance[tokenId] = _donationBalance[tokenId].add(msg.value);
+    uint256 _tax = msg.value / 100;
+    _donationBalance[tokenId] = _donationBalance[tokenId].add(msg.value -_tax);
+    emit BalanceUpdated(tokenId, msg.value - _tax);
+    _treasuryBalance += _tax;
   }
 
   function tokenDonationBalance (uint256 tokenId) public view returns (uint256) {
@@ -48,6 +56,17 @@ contract NFT is ERC721URIStorage, ReentrancyGuard, Ownable {
 
   function numberOfTokens () public view returns (uint256) {
     return _tokenIds.current();
+  }
+
+    function getTreasuryBalance() public view returns (uint256) {
+    return _treasuryBalance;
+  }
+
+// returns a list of references of a tokenId
+// 
+  function getReferences (uint256 tokenId) public view returns(uint256[] memory) {
+    require(tokenId >= 0 && tokenId < _tokenIds.current(), "_getReferences : enter a valid token Id");
+    return _references[tokenId];
   }
 
 // creates the list of references for tokenId in _references mapping 
@@ -62,14 +81,6 @@ contract NFT is ERC721URIStorage, ReentrancyGuard, Ownable {
     _references[tokenId] = refs;
 
   }
-
-// returns a list of references of a tokenId
-// 
-function getReferences (uint256 tokenId) public view returns(uint256[] memory) {
-  require(tokenId >= 0 && tokenId < _tokenIds.current(), "_getReferences : enter a valid token Id");
-  return _references[tokenId];
-}
-
 
 
 // receives a tokenId and a list of references (refs)
@@ -118,8 +129,13 @@ function getReferences (uint256 tokenId) public view returns(uint256[] memory) {
   function claimDonation (uint256 tokenId) public payable nonReentrant {
     require(_donationBalance[tokenId] > 0, "claimDonation: There is no balance to be claimed" );
     
+    uint256 claimer_cut = (_donationBalance[tokenId])/100; // 1% claim fee
+    emit DonationClaimed(tokenId, _donationBalance[tokenId]);
+    _donationBalance[tokenId] -= claimer_cut;
+
     address payable owner = payable( ownerOf(tokenId) );
     uint256 owner_cut;
+
     if(_references[tokenId].length >0 ){
       
       owner_cut = _fundRefs(tokenId);
@@ -130,34 +146,38 @@ function getReferences (uint256 tokenId) public view returns(uint256[] memory) {
     }
     
     _donationBalance[tokenId] = 0 ;
+
     // owner.transfer(owner_cut);
     (bool success, ) = owner.call{value: owner_cut}("");
-    require(success, "claim donation: Transfer of funds failed");
-
+    require(success, "claimDonation: Transfer of owner's funds failed");
+    
+    (bool success_, ) = payable(msg.sender).call{value: claimer_cut}("");
+    require(success_ , "claimDonation: Transfer of claimer's funds failed");
   }
 
 // distributes part of the funds in _donationBalance[tokenId] to the references
 // 
-  function _fundRefs (uint256 tokenId) private returns(uint256 owner_cut)  {
+  function _fundRefs (uint256 _tokenId) private returns(uint256 owner_cut)  {
 
     uint256 _owner_cut;
     uint256 refs_cut;
 
-    _owner_cut = ( _donationBalance[tokenId] * 2 ) / 3;
-    refs_cut =  _donationBalance[tokenId] /3 ;
-    _owner_cut += ( _donationBalance[tokenId] - _owner_cut - refs_cut );
-    refs_cut = refs_cut / _references[tokenId].length ; 
+    _owner_cut = ( _donationBalance[_tokenId] * 2 ) / 3;
+    refs_cut =  _donationBalance[_tokenId] /3 ;
+    _owner_cut += ( _donationBalance[_tokenId] - _owner_cut - refs_cut );
+    refs_cut = refs_cut / _references[_tokenId].length ; 
 
 
     uint256 i;
-    for(i=0 ; i<_references[tokenId].length ; i++){
-      _donationBalance[ _references[tokenId][i] ].add(refs_cut);
+    for(i=0 ; i < _references[_tokenId].length ; i++){
+      _donationBalance[ _references[_tokenId][i] ] = _donationBalance[ _references[_tokenId][i] ].add(refs_cut);
+      emit BalanceUpdated( _references[_tokenId][i], refs_cut );
     }
 
     return _owner_cut;
   }
  
-  // claim donation
+  
   // withdraw treasure?
   // opensea royalties?
 
