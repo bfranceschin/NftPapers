@@ -61,6 +61,10 @@ export const getDonationBalances = async (provider) => {
   return forEachNft(provider, (contract, tokenId) => contract.tokenDonationBalance(tokenId))
 }
 
+export const getNftReferences = async (provider) => {
+  return forEachNft(provider, (contract, tokenId) => contract.getReferences(tokenId))
+}
+
 export const getNftMetaData = async (provider) => {
   const func = async (contract, tokenId) => {
     const uri = await contract.tokenURI(tokenId)
@@ -71,11 +75,18 @@ export const getNftMetaData = async (provider) => {
 }
 
 export const getNfts = async (provider) => {
-  const [metaData, donationBalances] = await Promise.all([getNftMetaData(provider), getDonationBalances(provider)])
+  const [metaData, donationBalances, references] = await Promise.all([
+    getNftMetaData(provider), 
+    getDonationBalances(provider),
+    getNftReferences(provider)
+  ])
   const nfts = metaData.map((meta, i) => {
     const nft = {...meta}
     if (donationBalances[i]) {
       nft.donationBalance = ethers.utils.formatEther(donationBalances[i].toString())
+    }
+    if (references[i]) {
+      nft.references = references[i].map(i => i.toNumber())
     }
     nft.tokenId = i
     nft.image = ipfsToHTTP(nft.image)
