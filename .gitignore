@@ -43,3 +43,6 @@ cache
 artifacts
 
 config.js
+
+# Nft storage api
+nftStorageApi.js
